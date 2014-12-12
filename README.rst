@@ -97,4 +97,5 @@ How to Run unit-test
 -------------------------
 
 1. Install `riakcs-helper <https://github.com/shibukawa/riakcs-helper>`_ and init.
-
+2. Prepare a bucket and a user (including access key, secret key) to use in test.
+3. Fix const strings in `test/s3test.cpp` and `test/buckettest.cpp`.
