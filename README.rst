@@ -33,7 +33,7 @@ Putting Object
 .. code-block:: cpp
 
    // uploaded is called when each item would be uploaded
-   connect(bucket, &S3::Bucket::uploaded, [=] (const QString& key) {
+   connect(bucket, &S3::Bucket::uploaded, [=] (const QString& key, int httpStatus) {
        qDebug() << key << " is uploaded";
    });
 
@@ -42,10 +42,9 @@ Putting Object
        qDebug() << " all items are uploaded";
    });
 
-   // at first, total size is not accurate because it doesn't include
-   // header size.
-   connect(bucket, &S3::Bucket::progress, [=] (qint64 sent, qint64 total) {
-       qDebug() << "progress:" << sent << "/" << total;
+   // this signal is emitted when progress information is updated
+   connect(bucket, &S3::Bucket::progress, [=] (const QString& key, qint64 sent, qint64 total) {
+       qDebug() << "progress:" << key << sent << "/" << total;
    });
 
    // upload method is async method.
@@ -57,14 +56,14 @@ Putting Object
    bucket->upload("test_file.txt", QByteArray("test file content"));
    loop.exec();
 
-Getting Object
+Getting Object (1)
 ~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: cpp
 
    // uploaded is called when each item would be downloaded
    // This is an only way to receive data.
-   connect(bucket, &S3::Bucket::downloaded, [=] (const QString& key, const QByteArray& content) {
+   connect(bucket, &S3::Bucket::downloaded, [=] (const QString& key, const QByteArray& content, int httpStatus) {
        qDebug() << key << " is downloaded";
    });
 
@@ -73,10 +72,9 @@ Getting Object
        qDebug() << " all items are uploaded";
    });
 
-   // at first, total size is not accurate because it doesn't know
-   // actual data size.
-   connect(bucket, &S3::Bucket::progress, [=] (qint64 sent, qint64 total) {
-       qDebug() << "progress:" << sent << "/" << total;
+   // this signal is emitted when progress information is updated
+   connect(bucket, &S3::Bucket::progress, [=] (const QString& key, qint64 sent, qint64 total) {
+       qDebug() << "progress:" << key << sent << "/" << total;
    });
 
    // download method is async method.
@@ -87,6 +85,21 @@ Getting Object
    connect(bucket, SIGNAL(finished()), &loop, SLOT(quit()));
    bucket->download("test_file.txt");
    loop.exec();
+
+Getting Object (2)
+~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: cpp
+
+   // at first, total size is not accurate because it doesn't know
+   // actual data size.
+   connect(bucket, &S3::Bucket::progress, [=] (const QString& key, qint64 sent, qint64 total) {
+       qDebug() << "progress:" << key << sent << "/" << total;
+   });
+
+   // downloadSync method is sync method.
+   QByteArray content
+   int httpStatus = bucket->downloadSync("test_file.txt", content);
 
 License
 --------------
@@ -99,3 +112,19 @@ How to Run unit-test
 1. Install `riakcs-helper <https://github.com/shibukawa/riakcs-helper>`_ and init.
 2. Prepare a bucket and a user (including access key, secret key) to use in test.
 3. Fix const strings in `test/s3test.cpp` and `test/buckettest.cpp`.
+
+History
+-------------
+
+12/10/2014
+~~~~~~~~~~~~~~~
+
+* initial version
+
+12/16/2014
+~~~~~~~~~~~~~~~
+
+* ``downloaded`` and ``uploaded`` signal send ``httpStatus`` as a last param.
+* remove ``progress`` signal of total progress.
+* rename ``progressTask`` signal to ``progress``.
+* add ``downloadSync`` method.

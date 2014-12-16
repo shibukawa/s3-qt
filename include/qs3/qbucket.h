@@ -5,21 +5,24 @@
 #include <QObject>
 #include <QRunnable>
 #include <QReadWriteLock>
+#include <QSharedPointer>
 
 class QNetworkAccessManager;
 class QNetworkReply;
+class QEventLoop;
 
 namespace QS3 {
 
 class S3;
 
 struct NetworkTask {
-    NetworkTask(const QString& filename, bool sendFlag=true) : total(0), sent(0), finished(false), key(filename), send(sendFlag) {}
-    qint64 total;
-    qint64 sent;
+    NetworkTask(const QString& filename, bool sendFlag=true) : finished(false), key(filename), send(sendFlag), loop(nullptr), httpStatusCode(0) {}
     bool finished;
     QString key;
     bool send;
+    QEventLoop* loop;
+    QByteArray downloadedContent;
+    int httpStatusCode;
 };
 
 class Bucket : public QObject
@@ -30,13 +33,14 @@ public:
     ~Bucket();
     void upload(const QString& name, const QByteArray& data);
     void download(const QString& name);
+    int downloadSync(const QString& name, QByteArray& result);
 
 signals:
     void finished();
-    void uploaded(const QString& key);
-    void progressTask(const QString& key, qint64 sent, qint64 total);
-    void progress(qint64 sent, qint64 total);
-    void downloaded(const QString& key, const QByteArray& data);
+    void progress(const QString& key, qint64 sent, qint64 total);
+
+    void uploaded(const QString& key, int httpStatus);
+    void downloaded(const QString& key, const QByteArray& data, int httpStatus);
 
 private slots:
     void _receiveFinished(QNetworkReply* reply);
@@ -50,9 +54,7 @@ protected:
     QString _accessKey;
     QString _secretKey;
     QNetworkAccessManager* _manager;
-    QMap<QNetworkReply*, NetworkTask*> _tasks;
-
-    bool _sendProgress();
+    QMap<QNetworkReply*, QSharedPointer<NetworkTask> > _tasks;
 };
 
 }

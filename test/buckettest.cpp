@@ -75,6 +75,27 @@ void BucketTest::testReceiveItem()
     QCOMPARE(receivedContent, QByteArray("test data"));
 }
 
+void BucketTest::testReceiveSyncItem()
+{
+    this->_util->initTestBucket(testBucketName);
+    QS3::S3 s3(s3Host, s3Proxy);
+    QScopedPointer<QS3::Bucket> bucket(s3.bucket(testBucketName, testUserAccessKey, testUserSecretKey));
+
+    QByteArray data("test data");
+    bucket->upload("test_02.txt", data);
+
+    // wait finish
+    QEventLoop loop;
+    connect(bucket.data(), SIGNAL(finished()), &loop, SLOT(quit()));
+    loop.exec();
+
+    // receive uploaded data
+    QByteArray receivedContent;
+    int httpStatus = bucket->downloadSync("test_02.txt", receivedContent);
+    QCOMPARE(httpStatus, 200);
+    QCOMPARE(receivedContent, QByteArray("test data"));
+}
+
 void BucketTest::cleanup()
 {
     delete this->_util;

@@ -17,6 +17,7 @@ private slots:
     void init();
     void testSendItem();
     void testReceiveItem();
+    void testReceiveSyncItem();
     void cleanup();
 
 protected:
